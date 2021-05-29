@@ -1,11 +1,10 @@
-import { CfnOutput, Construct, Duration, Stack, StackProps } from "@aws-cdk/core";
-import { AssetCode, Code, Function, LayerVersion, Runtime } from "@aws-cdk/aws-lambda";
-import { AttributeType, BillingMode, Table } from "@aws-cdk/aws-dynamodb";
-import { Dashboard, GraphWidget, Metric, MetricProps, SingleValueWidget } from "@aws-cdk/aws-cloudwatch";
-import * as path from 'path';
-export interface NodeVsDenoStackProps extends StackProps{
-  denoLambdaLayer: string;
-}
+import { CfnOutput, Duration, Stack, StackProps  } from "aws-cdk-lib";
+import { CfnApplication } from "aws-cdk-lib/aws-sam";
+import { AssetCode, Code, Function, LayerVersion, Runtime } from "aws-cdk-lib/aws-lambda";
+import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
+import { Dashboard, GraphWidget, Metric, MetricProps, SingleValueWidget } from "aws-cdk-lib/aws-cloudwatch";
+import { Construct } from "constructs";
+import * as path from "path";
 
 export class NodeVsDenoStack extends Stack {
   private denoLambda: Function;
@@ -14,7 +13,7 @@ export class NodeVsDenoStack extends Stack {
   private table: Table;
   private code: AssetCode;
 
-  constructor(scope: Construct, id: string, private props: NodeVsDenoStackProps) {
+  constructor(scope: Construct, id: string, private props?: StackProps) {
     super(scope, id, props);
 
     this.createDynamodb();
@@ -32,7 +31,7 @@ export class NodeVsDenoStack extends Stack {
     this.nodeLambda = new Function(this, 'node', {
       code: this.code,
       handler: "node/node.handler",
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_14_X,
       memorySize: 1024,
       environment: {
         TABLE: this.table.tableName,
@@ -43,16 +42,29 @@ export class NodeVsDenoStack extends Stack {
   }
 
   private createDenoLambda() {
+    const denoRuntime = new CfnApplication(this, "deno-runtime", {
+      location: {
+        applicationId:
+          "arn:aws:serverlessrepo:us-east-1:390065572566:applications/deno",
+        semanticVersion: "1.7.2",
+      },
+    });
+    // Deno Layer
+    const layer = LayerVersion.fromLayerVersionArn(
+      this,
+      "deno-runtime-layer",
+      denoRuntime.getAtt("Outputs.LayerArn").toString(),
+    );
     this.denoLambda = new Function(this, 'deno', {
-      code: Code.fromAsset(path.join(__dirname,"handlers","deno")),
+      code: Code.fromAsset(path.join(__dirname, "handlers", "deno")),
       handler: "deno.handler",
-      runtime: Runtime.PROVIDED,
+      runtime: Runtime.PROVIDED_AL2,
       memorySize: 1024,
       environment: {
         TABLE: this.table.tableName
       },
       layers: [
-        LayerVersion.fromLayerVersionArn(this, 'deno-runtime', this.props.denoLambdaLayer)
+        layer
       ]
     });
 
@@ -67,7 +79,7 @@ export class NodeVsDenoStack extends Stack {
       },
       code: this.code,
       handler: 'node/testrunner.handler',
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_14_X,
       timeout: Duration.minutes(15)
     });
 

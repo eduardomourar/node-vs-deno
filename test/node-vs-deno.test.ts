@@ -1,9 +1,9 @@
 import { expect as expectCDK, matchTemplate, MatchStyle } from '@aws-cdk/assert';
-import * as cdk from '@aws-cdk/core';
+import { App } from 'aws-cdk-lib';
 import * as NodeVsDeno from '../lib/node-vs-deno-stack';
 
 test('Empty Stack', () => {
-    const app = new cdk.App();
+    const app = new App();
     // WHEN
     const stack = new NodeVsDeno.NodeVsDenoStack(app, 'MyTestStack');
     // THEN
