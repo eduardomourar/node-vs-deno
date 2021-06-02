@@ -13,7 +13,7 @@ next step.
 $ npm i
 $ npm run build:deno
 $ npm run build:deno:remap
-$ npm run cdk deploy -c denoLambdaLayer=arn:aws:lambda:us-east-1:1234567890123:layer:deno:1"
+$ npm run cdk deploy
 ```
 
 The `build:deno` grabs dependencies for packaging and the `build:deno:remap` sets a remapping folder per the 
